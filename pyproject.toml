@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "enqueue"
+version = "0.1.0"
+description = "USD-native extensible task graph runner"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+dependencies = [
+  "usd-core>=24.0",
+  "liveshell @ git+https://github.com/wheresoli/LiveShell.git",
+]
+
+[project.scripts]
+enqueue = "enqueue.cli:main"
+
+[project.entry-points."enqueue.nodes"]
+enqueue-core = "enqueue.builtins:register"
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "build>=1"]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+enqueue = ["schemas/*.usda", "py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"

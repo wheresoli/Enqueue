@@ -1,0 +1,181 @@
+#usda 1.0
+
+# Portable fallback classes. Generated schemas can later expose the same names.
+class "EnqueueGraph"
+{
+    uniform int enqueue:maxConcurrency = 1
+    uniform token enqueue:failurePolicy = "blockDownstream"
+    custom rel enqueue:defaultAgent
+    custom rel enqueue:defaultModel
+}
+
+class "EnqueueNode"
+{
+    uniform bool enqueue:enabled = true
+    custom rel enqueue:requires
+    custom rel enqueue:retryPolicy
+    custom rel enqueue:timeoutPolicy
+    custom rel enqueue:toolPolicy
+    custom float2 enqueue:ui:position = (0, 0)
+    custom float2 enqueue:ui:size = (240, 120)
+    custom bool enqueue:ui:collapsed = false
+}
+
+class "EnqueueTerminal" (inherits = </EnqueueNode>) {}
+class "EnqueueStart" (inherits = </EnqueueTerminal>)
+{
+    custom token outputs:signal = "start"
+}
+class "EnqueueEnd" (inherits = </EnqueueTerminal>)
+{
+    custom token inputs:signal
+}
+
+class "EnqueueSource" (inherits = </EnqueueNode>) {}
+class "EnqueueTextSource" (inherits = </EnqueueSource>)
+{
+    custom string inputs:input
+    custom string outputs:value = ""
+}
+class "EnqueueFileSource" (inherits = </EnqueueSource>)
+{
+    custom asset inputs:input
+    custom asset outputs:value
+    uniform token enqueue:access = "readOnly"
+}
+class "EnqueueGitSource" (inherits = </EnqueueSource>)
+{
+    custom asset outputs:repository
+    custom string outputs:revision = ""
+}
+class "EnqueueModelSource" (inherits = </EnqueueSource>)
+{
+    custom asset outputs:value
+    uniform int enqueue:contextSize = 32768
+    uniform int enqueue:gpuLayers = -1
+    uniform int enqueue:parallelSlots = 1
+    uniform token enqueue:reasoning = "off"
+    uniform string[] enqueue:serverArguments = []
+}
+
+class "EnqueueExecutable" (inherits = </EnqueueNode>)
+{
+    custom rel enqueue:agent
+    custom rel enqueue:executor
+}
+class "EnqueueAgent" (inherits = </EnqueueExecutable>)
+{
+    custom string inputs:task
+    custom asset inputs:domain
+    custom asset inputs:model
+    custom string outputs:result
+    custom rel enqueue:artifacts
+    custom string enqueue:instructions = ""
+    uniform int enqueue:maxTurns = 12
+    uniform int enqueue:maxTokens = 4096
+    uniform float enqueue:temperature = 0.2
+}
+class "EnqueueAgentDefinition"
+{
+    custom rel enqueue:model
+    custom rel enqueue:retryPolicy
+    custom rel enqueue:toolPolicy
+    custom string enqueue:instructions = ""
+    uniform int enqueue:maxTurns = 12
+    uniform int enqueue:maxTokens = 4096
+    uniform float enqueue:temperature = 0.2
+}
+class "EnqueueRuntime" (inherits = </EnqueueExecutable>)
+{
+    custom string inputs:input
+    custom string outputs:result
+}
+class "EnqueueControl" (inherits = </EnqueueNode>) {}
+class "EnqueueConditional" (inherits = </EnqueueControl>)
+{
+    custom string inputs:input
+    custom string inputs:compare
+    custom bool outputs:true
+    custom bool outputs:false
+    uniform token enqueue:operator = "equals"
+}
+class "EnqueueIterator" (inherits = </EnqueueControl>)
+{
+    custom string[] inputs:input
+    custom string outputs:value
+    custom bool outputs:done
+}
+class "EnqueueUtility" (inherits = </EnqueueExecutable>) {}
+class "EnqueueMemory" (inherits = </EnqueueNode>)
+{
+    custom string inputs:value
+    custom string outputs:value
+}
+
+class "EnqueueRetryPolicy"
+{
+    uniform int enqueue:maxAttempts = 1
+    uniform double enqueue:initialDelaySeconds = 0
+    uniform token enqueue:backoff = "none"
+    uniform token[] enqueue:retryOn = []
+}
+class "EnqueueTimeoutPolicy"
+{
+    uniform double enqueue:seconds = 0
+}
+class "EnqueueToolPolicy"
+{
+    uniform token[] enqueue:allowedTools = []
+    custom asset[] enqueue:readableRoots = []
+    custom asset[] enqueue:writableRoots = []
+    uniform bool enqueue:allowNetwork = false
+}
+
+class "EnqueueEdge"
+{
+    custom rel enqueue:source
+    custom rel enqueue:target
+    uniform token enqueue:semantic = "sequence"
+    uniform token enqueue:activation = "onSuccess"
+}
+class "EnqueueRun"
+{
+    custom rel enqueue:graph
+    uniform token enqueue:state = "waiting"
+    uniform string enqueue:definitionDigest = ""
+    uniform string enqueue:createdAt = ""
+    uniform string enqueue:finishedAt = ""
+}
+class "EnqueueNodeRun"
+{
+    custom rel enqueue:node
+    custom rel enqueue:artifacts
+    uniform token enqueue:state = "waiting"
+    uniform int enqueue:attempt = 0
+    uniform string enqueue:reason = ""
+    uniform string enqueue:startedAt = ""
+    uniform string enqueue:finishedAt = ""
+    custom string enqueue:result = ""
+    custom string enqueue:externalSessionId = ""
+    custom string enqueue:externalCommandId = ""
+}
+class "EnqueueAttempt"
+{
+    custom rel enqueue:nodeRun
+    uniform int enqueue:number = 1
+    uniform token enqueue:state = "running"
+    uniform string enqueue:startedAt = ""
+    uniform string enqueue:finishedAt = ""
+    uniform string enqueue:reason = ""
+}
+class "EnqueueArtifact"
+{
+    custom rel enqueue:producer
+    custom asset enqueue:content
+    uniform string enqueue:mediaType = "application/octet-stream"
+    uniform string enqueue:digest = ""
+}
+class "EnqueueTextArtifact" (inherits = </EnqueueArtifact>)
+{
+    uniform string enqueue:mediaType = "text/plain"
+}
