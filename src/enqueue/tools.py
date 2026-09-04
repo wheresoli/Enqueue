@@ -63,7 +63,18 @@ class ToolEnvironment:
             executable = shutil_which("rg")
             if not executable:
                 raise ExecutionError("search_files requires ripgrep (rg)")
-            command = [executable, "-n", "--hidden", "-g", "!.git/**", "-g", str(arguments.get("glob") or "*"), str(arguments["pattern"]), str(self.root)]
+            search_roots = [str(root) for root in self.readable_roots] or [str(self.root)]
+            command = [
+                executable,
+                "-n",
+                "--hidden",
+                "-g",
+                "!.git/**",
+                "-g",
+                str(arguments.get("glob") or "*"),
+                str(arguments["pattern"]),
+                *search_roots,
+            ]
             result = subprocess.run(command, capture_output=True, text=True, timeout=30)
             return (result.stdout or result.stderr or "No matches")[-50000:]
         if name == "write_file":
