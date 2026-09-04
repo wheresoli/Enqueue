@@ -44,7 +44,7 @@ class CommandDefinitionHandler:
         if not str(command).strip():
             raise ExecutionError(f"{prim.GetPath()} has no command")
         cwd = context.inputs.get("inputs:workingDirectory") or context.attr("outputs:workingDirectory")
-        timeout = context.inputs.get("inputs:timeoutSeconds") or context.attr("outputs:timeoutSeconds", 300)
+        timeout = context.inputs.get("inputs:timeoutSeconds") if context.inputs.get("inputs:timeoutSeconds") is not None else context.attr("outputs:timeoutSeconds", 300)
         outputs = {
             "outputs:command": str(command),
             "outputs:workingDirectory": cwd,
