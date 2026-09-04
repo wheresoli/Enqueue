@@ -1,0 +1,118 @@
+#usda 1.0
+(
+    subLayers = [
+        @../src/enqueue/schemas/liveshell.usda@
+    ]
+    defaultPrim = "MaintainProject"
+)
+
+def EnqueueGraph "MaintainProject" (
+    inherits = </EnqueueGraph>
+)
+{
+    int enqueue:maxConcurrency = 2
+    rel enqueue:defaultAgent = </MaintainProject/Agents/Coder>
+    rel enqueue:defaultModel = </MaintainProject/Sources/Model>
+
+    def Scope "Policies"
+    {
+        def EnqueueToolPolicy "RepositoryTools" (
+            inherits = </EnqueueToolPolicy>
+        )
+        {
+            token[] enqueue:allowedTools = ["read_file", "search_files", "write_file", "replace_in_file", "run_shell"]
+            asset[] enqueue:readableRoots = [@../@]
+            asset[] enqueue:writableRoots = [@../@]
+            bool enqueue:allowNetwork = false
+        }
+    }
+
+    def Scope "Agents"
+    {
+        def EnqueueAgentDefinition "Coder" (
+            inherits = </EnqueueAgentDefinition>
+        )
+        {
+            rel enqueue:model = </MaintainProject/Sources/Model>
+            rel enqueue:toolPolicy = </MaintainProject/Policies/RepositoryTools>
+            string enqueue:instructions = "You are a coding agent. Inspect before editing and verify your work."
+            int enqueue:maxTurns = 12
+            int enqueue:maxTokens = 4096
+            float enqueue:temperature = 0.2
+        }
+    }
+
+    def Scope "Sources"
+    {
+        def EnqueueTextSource "Objective" (
+            inherits = </EnqueueTextSource>
+        )
+        {
+            string outputs:value = "Inspect this repository, identify one concrete defect, fix it, and verify the fix."
+        }
+
+        def EnqueueFileSource "Repository" (
+            inherits = </EnqueueFileSource>
+        )
+        {
+            asset outputs:value = @../@
+            token enqueue:access = "readWrite"
+        }
+
+        def EnqueueModelSource "Model" (
+            inherits = </EnqueueModelSource>
+        )
+        {
+            asset outputs:value = @C:/Models/model.gguf@
+            int enqueue:contextSize = 32768
+            int enqueue:gpuLayers = -1
+            int enqueue:parallelSlots = 1
+            token enqueue:reasoning = "off"
+        }
+    }
+
+    def Scope "Nodes"
+    {
+        def EnqueueStart "Start" (inherits = </EnqueueStart>) {}
+
+        def EnqueueAgent "Maintain" (
+            inherits = </EnqueueAgent>
+        )
+        {
+            string inputs:task.connect = </MaintainProject/Sources/Objective.outputs:value>
+            asset inputs:domain.connect = </MaintainProject/Sources/Repository.outputs:value>
+            asset inputs:model.connect = </MaintainProject/Sources/Model.outputs:value>
+            string outputs:result
+            rel enqueue:requires = </MaintainProject/Nodes/Start>
+        }
+
+        def EnqueueLiveShellCommand "TestCommand" (
+            inherits = </EnqueueLiveShellCommand>
+        )
+        {
+            string outputs:command = "python -m pytest"
+            asset outputs:workingDirectory = @../@
+            double outputs:timeoutSeconds = 300
+            rel enqueue:requires = </MaintainProject/Nodes/Maintain>
+        }
+
+        def EnqueueLiveShellSession "Test" (
+            inherits = </EnqueueLiveShellSession>
+        )
+        {
+            string inputs:command.connect = </MaintainProject/Nodes/TestCommand.outputs:command>
+            asset inputs:workingDirectory.connect = </MaintainProject/Nodes/TestCommand.outputs:workingDirectory>
+            double inputs:timeoutSeconds.connect = </MaintainProject/Nodes/TestCommand.outputs:timeoutSeconds>
+            string outputs:stdout
+            string outputs:stderr
+            int outputs:exitCode
+        }
+
+        def EnqueueEnd "Complete" (
+            inherits = </EnqueueEnd>
+        )
+        {
+            rel enqueue:requires = </MaintainProject/Nodes/Test>
+        }
+    }
+}

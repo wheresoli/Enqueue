@@ -1,0 +1,26 @@
+#usda 1.0
+(
+    subLayers = [@core.usda@]
+)
+
+class "EnqueueLiveShellCommand" (inherits = </EnqueueUtility>)
+{
+    custom string inputs:command
+    custom asset inputs:workingDirectory
+    custom double inputs:timeoutSeconds = 300
+    custom string outputs:command
+    custom asset outputs:workingDirectory
+    custom double outputs:timeoutSeconds = 300
+}
+
+class "EnqueueLiveShellSession" (inherits = </EnqueueRuntime>)
+{
+    custom string inputs:command
+    custom asset inputs:workingDirectory
+    custom double inputs:timeoutSeconds = 300
+    uniform token enqueue:shellKind = "auto"
+    uniform string enqueue:sessionKey = ""
+    custom string outputs:stdout
+    custom string outputs:stderr
+    custom int outputs:exitCode
+}

@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.wheel-test/
+build/
+dist/
+*.egg-info/
+*.run.usda
+*.run.artifacts/
+*.run.runtime/
+*.run.liveshell/
