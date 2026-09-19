@@ -39,3 +39,31 @@ def test_liveshell_graph_runs_and_resumes(tmp_path):
     assert "42" in store.result_for(Sdf.Path("/Graph/Session"))
     resumed = Engine().resume(output_path)
     assert resumed.succeeded
+
+
+def test_task_source_renders_contract_for_iterator(tmp_path):
+    graph_path = tmp_path / "tasks.usda"
+    output_path = tmp_path / "tasks.run.usda"
+    write_graph(graph_path, '''
+    def EnqueueStart "Start" (inherits=</EnqueueStart>) {}
+    def EnqueueTaskSource "Task" (inherits=</EnqueueTaskSource>) {
+        string enqueue:taskId = "task:test"
+        string enqueue:title = "Test task"
+        string[] enqueue:goals = ["Produce evidence."]
+        rel enqueue:requires = </Graph/Start>
+    }
+    def EnqueueIterator "Order" (inherits=</EnqueueIterator>) {
+        string inputs:input.connect = [</Graph/Task.outputs:value>]
+    }
+    def EnqueueEnd "End" (inherits=</EnqueueEnd>) {
+        rel enqueue:requires = </Graph/Order>
+    }
+''')
+    summary = Engine().run(graph_path, output=output_path)
+    assert summary.succeeded
+    store = RunStore.open(output_path)
+    from pxr import Sdf
+    result = store.result_for(Sdf.Path("/Graph/Order"))
+    assert "Test task" in result
+    assert "Task ID: task:test" in result
+    assert "Produce evidence." in result

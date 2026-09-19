@@ -77,3 +77,23 @@ def test_known_schema_without_handler_is_rejected(tmp_path):
 ''')
     diagnostics = Graph(path, Registry.discover()).validate()
     assert any(item.code == "unsupported_node" for item in diagnostics)
+
+
+def test_task_source_and_iterator_are_registered(tmp_path):
+    path = tmp_path / "tasks.usda"
+    write_graph(path, '''
+    def EnqueueTaskSource "Task" (inherits=</EnqueueTaskSource>) {
+        string enqueue:taskId = "task:test"
+        string enqueue:title = "Test task"
+        int enqueue:order = 1
+        string[] enqueue:goals = ["Make the observable change."]
+    }
+    def EnqueueIterator "Order" (inherits=</EnqueueIterator>) {
+        string inputs:input.connect = [</Graph/Task.outputs:value>]
+        rel enqueue:requires = </Graph/Task>
+    }
+''')
+    graph = Graph(path, Registry.discover())
+    assert graph.validate() == []
+    assert graph.nodes[Sdf.Path("/Graph/Task")].spec.schema_class == "/EnqueueTaskSource"
+    assert graph.nodes[Sdf.Path("/Graph/Order")].spec.schema_class == "/EnqueueIterator"

@@ -37,6 +37,22 @@ class "EnqueueTextSource" (inherits = </EnqueueSource>)
     custom string inputs:input
     custom string outputs:value = ""
 }
+class "EnqueueTaskSource" (inherits = </EnqueueSource>)
+{
+    custom string outputs:value = ""
+    uniform string enqueue:taskId = ""
+    custom string enqueue:title = ""
+    uniform int enqueue:order = 0
+    uniform token enqueue:taskClass = ""
+    custom string[] enqueue:goals = []
+    uniform token enqueue:scopeMode = "declared-paths"
+    custom string[] enqueue:writableRoots = []
+    custom string[] enqueue:referencePaths = []
+    custom string[] enqueue:verifyCommands = []
+    custom string[] enqueue:blockers = []
+    custom string[] enqueue:notes = []
+    custom string enqueue:externalRepository = ""
+}
 class "EnqueueFileSource" (inherits = </EnqueueSource>)
 {
     custom asset inputs:input
@@ -101,9 +117,10 @@ class "EnqueueConditional" (inherits = </EnqueueControl>)
 }
 class "EnqueueIterator" (inherits = </EnqueueControl>)
 {
-    custom string[] inputs:input
+    custom string inputs:input
     custom string outputs:value
     custom bool outputs:done
+    uniform token enqueue:mode = "sequential"
 }
 class "EnqueueUtility" (inherits = </EnqueueExecutable>) {}
 class "EnqueueMemory" (inherits = </EnqueueNode>)

@@ -32,6 +32,50 @@ class SourceHandler:
         return NodeResult(outputs=values, result=str(values.get("outputs:value", "")))
 
 
+class TaskSourceHandler:
+    """Render an authored task contract into the agent's text input."""
+
+    def execute(self, context: RuntimeContext) -> NodeResult:
+        prim = context.prim
+
+        def value(name: str, default: Any = None) -> Any:
+            attr = prim.GetAttribute(name)
+            result = attr.Get() if attr else None
+            return default if result is None else result
+
+        title = str(value("enqueue:title", prim.GetName()) or prim.GetName())
+        lines = [title]
+        task_id = str(value("enqueue:taskId", "") or "").strip()
+        if task_id:
+            lines.append(f"Task ID: {task_id}")
+        for heading, name in (
+            ("Goals", "enqueue:goals"),
+            ("Blockers", "enqueue:blockers"),
+            ("Writable roots", "enqueue:writableRoots"),
+            ("Reference paths", "enqueue:referencePaths"),
+            ("Verification", "enqueue:verifyCommands"),
+            ("Notes", "enqueue:notes"),
+        ):
+            items = [str(item) for item in (value(name, []) or []) if str(item).strip()]
+            if items:
+                lines.extend((f"\n{heading}:", *(f"- {item}" for item in items)))
+        rendered = "\n".join(lines)
+        return NodeResult(outputs={"outputs:value": rendered}, result=rendered)
+
+
+class IteratorHandler:
+    """Expose authored iterator items without inventing scheduler semantics."""
+
+    def execute(self, context: RuntimeContext) -> NodeResult:
+        raw = context.inputs.get("inputs:input")
+        items = raw if isinstance(raw, list) else ([] if raw is None else [raw])
+        rendered = "\n\n".join(str(item) for item in items)
+        return NodeResult(
+            outputs={"outputs:value": rendered, "outputs:done": True},
+            result=rendered,
+        )
+
+
 class TerminalHandler:
     def execute(self, context: RuntimeContext) -> NodeResult:
         return NodeResult(outputs=_outputs(context.prim), result="terminal reached")
@@ -257,10 +301,27 @@ def register(registry: Registry) -> None:
     terminal = TerminalHandler()
     registry.register(NodeSpec("/EnqueueStart", "terminal", terminal, outputs=("outputs:signal",)))
     registry.register(NodeSpec("/EnqueueEnd", "terminal", terminal))
+    registry.register(
+        NodeSpec(
+            "/EnqueueTaskSource",
+            "source",
+            TaskSourceHandler(),
+            outputs=("outputs:value",),
+        )
+    )
     registry.register(NodeSpec("/EnqueueTextSource", "source", source, outputs=("outputs:value",)))
     registry.register(NodeSpec("/EnqueueFileSource", "source", source, outputs=("outputs:value",)))
     registry.register(NodeSpec("/EnqueueGitSource", "source", source, outputs=("outputs:repository", "outputs:revision")))
     registry.register(NodeSpec("/EnqueueModelSource", "source", source, outputs=("outputs:value",)))
+    registry.register(
+        NodeSpec(
+            "/EnqueueIterator",
+            "control",
+            IteratorHandler(),
+            inputs=(PortContract("inputs:input", True),),
+            outputs=("outputs:value", "outputs:done"),
+        )
+    )
     registry.register(NodeSpec("/EnqueueAgent", "agent", AgentHandler(), inputs=(PortContract("inputs:task", True), PortContract("inputs:model", False), PortContract("inputs:domain", False)), outputs=("outputs:result",)))
     registry.register(NodeSpec("/EnqueueLiveShellCommand", "utility", CommandDefinitionHandler(), outputs=("outputs:command", "outputs:workingDirectory", "outputs:timeoutSeconds")))
     registry.register(NodeSpec("/EnqueueLiveShellSession", "runtime", LiveShellSessionHandler(), inputs=(PortContract("inputs:command", True), PortContract("inputs:workingDirectory", False), PortContract("inputs:timeoutSeconds", False)), outputs=("outputs:stdout", "outputs:stderr", "outputs:exitCode")))

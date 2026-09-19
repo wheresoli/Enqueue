@@ -12,9 +12,11 @@ replace the fallback class prims while retaining the same names and properties.
 
 The category hierarchy follows Concurro's engine roles: terminal, control,
 agent, runtime, source, utility, and memory. Concrete bundled classes include
-start/end, text/file/git/model sources, agent, LiveShell command/session,
-conditional, and iterator. Validation rejects a concrete node for which no
-runtime handler is installed.
+start/end, text/task/file/git/model sources, agent, LiveShell command/session,
+and iterator. Task sources render their authored contract deterministically as
+agent input. Validation rejects a concrete node for which no runtime handler is
+installed; schema placeholders such as conditional remain non-executable until
+a handler is registered.
 
 ## Ports and edges
 
